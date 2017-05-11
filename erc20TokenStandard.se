@@ -1,0 +1,61 @@
+# Here be serpents.
+
+# Implements the ERC20 Token standards as specified ..
+# All variables are typed according to the standard. This will work with standard ABI, also (TO BE) provided.
+# NOTE! This uses return values of 0 and 1 in place of the solidity preference of boolean returns of false and true. This is mainly a stylistic choice since [i think] you can return booleans in serpent. I follow Augur in my choice to return integers and not booleans.
+
+# Holds total supply.
+data total
+
+# Balance for accounts. Takes address as key and returns value.
+data balance[]
+
+# Approval for transfer rights. Takes an owner's address as the first key and the proxy address as the second key. The value is the amount the proxy account is approved to spend on owner's behalf.
+data allowed[][]
+
+# Events
+event Transfer(from:address:indexed, to:address:indexed, value:uint256)
+event Approval(owner:address:indexed, proxy:address:indexed, approvedValue: uint256)
+
+# This implements 100_000 tokens into circulation and directs them to the creator's balance.
+def init():
+	self.balance[msg.sender] = 100000
+	self.total = 100000
+
+# transfer
+# @returns a 1 on success and a 0 if not
+def transfer(to: address, value: uint256):
+	if(self.balance[msg.sender] >= value and value > 0 and self.balance[to] + value > self.balance[to]):
+		self.balance[msg.sender] -= value
+		self.balance[to] += value
+		return(1)
+	return(0)
+
+# transferFrom will usually be called by a contract acting as a proxy agent in an API. So you can think of the `msg.sender` here as a contract that's been pre-approved by the owner of the account in the `approve` function below.
+# @returns a 1 on success and a 0 if not
+def transferFrom(from: address, to: address, value: uint256):
+	if(self.balance[from] >= value and self.allowed[from][msg.sender] >= value and value > 0 and self.balance[to] + value > self.balance[to]):
+		self.balance[from] -= value
+		self.allowed[from][msg.sender] -= value
+		self.balance[to] += value
+		return(1)
+	return(0)
+
+# Sets the proxy agent and allowance to spend on an owner's behalf. If the function is called again it will overwrite.
+# @returns 1 on success
+def approve(proxy: address, value: address):
+	self.allowed[msg.sender][proxy] = value
+	return(1)
+
+# @returns balance of an address
+def balanceOf(query: address):
+	return(self.balance[query])
+
+# @returns remaining approved balance that a proxy agent may spend
+# on an owner's behalf.
+def allowance(owner: address, proxy: address):
+	return(self.allowed[owner][proxy])
+
+# @returns total supply
+def totalSupply():
+	return(self.total)
